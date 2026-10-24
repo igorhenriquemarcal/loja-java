@@ -26,6 +26,10 @@ public abstract class Produto {
         return nome;
     }
 
+    public double getPreco() {
+        return preco;
+    }
+
     public void setNome(String nome){
         this.nome = nome;
     }
