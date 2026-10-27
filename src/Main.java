@@ -3,6 +3,7 @@ import modelo.Cliente;
 import modelo.Eletronico;
 import modelo.Produto;
 import modelo.Roupa;
+import java.util.ArrayList;
 
 import java.util.Scanner;
 
@@ -75,6 +76,19 @@ public class Main {
         System.out.println("\n---Cliente cadastrado---");
         System.out.printf("Nome: %s%nCPF: %s%nEmail: %s%n",
                 cliente.getNome(), cliente.getCpf(), cliente.getEmail());
+
+
+        System.out.println("\n---Catálogo de exemplo---");
+
+        ArrayList<Produto> produtos = new ArrayList<>();
+        produtos.add(new Eletronico(1, "Fone", 200.0, 5, 12));
+        produtos.add(new Roupa(2, "Camiseta", 80.0, 20, "M"));
+        produtos.add(new Alimento(3, "Arroz 5kg", 30.0, 50, "31/12/2026"));
+
+        for (Produto p : produtos) {
+            System.out.println(p.getNome() + " - " + p.descricaoExtra());
+            System.out.printf("Frete: R$ %.2f%n", p.calcularFrete());
+        }
     }
 
     // Métodos para leitura com validação try/catch
