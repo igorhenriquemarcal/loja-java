@@ -13,4 +13,14 @@ public class Roupa extends Produto {
         return tamanho;
     }
 
+    @Override
+    public String descricaoExtra() {
+        return "Tamanho: " + tamanho;
+    }
+
+    @Override
+    public double calcularFrete() {
+        return 15.0;
+    }
+
 }

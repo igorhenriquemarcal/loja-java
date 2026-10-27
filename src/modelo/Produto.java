@@ -41,4 +41,8 @@ public abstract class Produto {
     public void setEstoque(int estoque) {
         this.estoque = estoque;
     }
+
+    public abstract String descricaoExtra();
+
+    public abstract double calcularFrete();
 }

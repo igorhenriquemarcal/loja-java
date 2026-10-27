@@ -14,4 +14,14 @@ public class Eletronico extends Produto {
         return garantiaMeses;
     }
 
+    @Override
+    public String descricaoExtra() {
+        return "Garantia: " + garantiaMeses +  " meses";
+    }
+
+    @Override
+    public double calcularFrete() {
+        return getPreco() * 0.05;
+    }
+
 }

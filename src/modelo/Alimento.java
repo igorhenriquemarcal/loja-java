@@ -12,4 +12,14 @@ public class Alimento extends Produto{
     public String getDataValidade() {
         return dataValidade;
     }
+
+    @Override
+    public String descricaoExtra(){
+        return "Validade: " + dataValidade;
+    }
+
+    @Override
+    public double calcularFrete(){
+        return getPreco() * 0.10;
+    }
 }
