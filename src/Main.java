@@ -68,16 +68,9 @@ public class Main {
                 produto.getCodigo(), produto.getNome(), produto.getPreco(), produto.getEstoque());
 
         // dado exclusivo de cada tipo
-        if (produto instanceof Eletronico) {
-            Eletronico e = (Eletronico) produto;
-            System.out.println("Garantia: " + e.getGarantiaMeses() + " meses");
-        } else if (produto instanceof Roupa) {
-            Roupa r = (Roupa) produto;
-            System.out.println("Tamanho: " + r.getTamanho());
-        } else if (produto instanceof Alimento) {
-            Alimento a = (Alimento) produto;
-            System.out.println("Validade: " + a.getDataValidade());
-        }
+        System.out.println(produto.descricaoExtra());
+        System.out.printf("Frete: R$ %.2f%n", produto.calcularFrete());
+        System.out.printf("Total: R$ %.2f%n", produto.getPreco() + produto.calcularFrete());
 
         System.out.println("\n---Cliente cadastrado---");
         System.out.printf("Nome: %s%nCPF: %s%nEmail: %s%n",
