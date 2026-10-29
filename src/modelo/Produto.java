@@ -45,4 +45,14 @@ public abstract class Produto {
     public abstract String descricaoExtra();
 
     public abstract double calcularFrete();
+
+    public void baixarEstoque(int quantidade) throws EstoqueInsuficienteException {
+        if (quantidade <= 0) {
+            throw new EstoqueInsuficienteException("Quantidade deve ser maior que zero.");
+        }
+        if (quantidade > estoque){
+            throw new EstoqueInsuficienteException("Estoque insuficiente de " + nome + "Disponível: " + estoque);
+        }
+        estoque -= quantidade;
+    }
 }

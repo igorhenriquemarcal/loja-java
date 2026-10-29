@@ -1,13 +1,6 @@
-import modelo.Alimento;
-import modelo.Cliente;
-import modelo.Eletronico;
-import modelo.Produto;
-import modelo.Roupa;
+import modelo.*;
+
 import java.util.ArrayList;
-import modelo.Pagamento;
-import modelo.Pix;
-import modelo.CartaoCredito;
-import modelo.Boleto;
 
 import java.util.Scanner;
 
@@ -32,7 +25,7 @@ public class Main {
         double preco = lerDouble(sc, "Preço: ");
         int estoque = lerInt(sc, "Estoque: ");
 
-        Produto produto;   // variável do tipo PAI
+        Produto produto;
 
         switch (tipo) {
             case 1:
@@ -92,6 +85,21 @@ public class Main {
         for (Produto p : produtos) {
             System.out.println(p.getNome() + " - " + p.descricaoExtra());
             System.out.printf("Frete: R$ %.2f%n", p.calcularFrete());
+        }
+
+        // ---------- Compra (baixa de estoque) ----------
+        System.out.println("\n---Compra---");
+        boolean compraOk = false;
+
+        while (!compraOk) {
+            int quantidade = lerInt(sc, "Quantidade desejada: ");
+            try {
+                produto.baixarEstoque(quantidade);
+                System.out.println("Compra realizada! Estoque restante: " + produto.getEstoque());
+                compraOk = true;
+            } catch (EstoqueInsuficienteException e) {
+                System.out.println("Erro: " + e.getMessage());
+            }
         }
 
         // ---------- Pagamento ----------
