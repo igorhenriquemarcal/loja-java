@@ -1,4 +1,5 @@
 import modelo.*;
+import modelo.PagamentoRecusadoException;
 
 import java.util.ArrayList;
 
@@ -127,20 +128,23 @@ public class Main {
         }
 
         double total = produto.getPreco() + produto.calcularFrete();
-        System.out.printf("Pagando com %s: R$ %.2f%n",
-                pagamento.getNome(), pagamento.calcularValorFinal(total));
-        System.out.printf("Pagando com %s: R$ %.2f%n",
-                pagamento.getNome(), pagamento.calcularValorFinal(total));
 
-        System.out.println("\n---Comparativo de pagamentos---");
+        try {
+            System.out.printf("Pagando com %s: R$ %.2f%n",
+                    pagamento.getNome(), pagamento.calcularValorFinal(total));
 
-        ArrayList<Pagamento> formas = new ArrayList<>();
-        formas.add(new Pix());
-        formas.add(new CartaoCredito());
-        formas.add(new Boleto());
+            System.out.println("\n---Comparativo de pagamentos---");
 
-        for (Pagamento f : formas) {
-            System.out.printf("%s: R$ %.2f%n", f.getNome(), f.calcularValorFinal(total));
+            ArrayList<Pagamento> formas = new ArrayList<>();
+            formas.add(new Pix());
+            formas.add(new CartaoCredito());
+            formas.add(new Boleto());
+
+            for (Pagamento f : formas) {
+                System.out.printf("%s: R$ %.2f%n", f.getNome(), f.calcularValorFinal(total));
+            }
+        } catch (PagamentoRecusadoException e) {
+            System.out.println("Pagamento recusado: " + e.getMessage());
         }
     }
 

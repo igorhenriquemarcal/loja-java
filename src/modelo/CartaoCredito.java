@@ -3,7 +3,7 @@ package modelo;
 public class CartaoCredito implements Pagamento {
 
     @Override
-    public double CalcularValorFinal(double valor){
+    public double CalcularValorFinal(double valor) throws PagamentoRecusadoException {
         return valor *1.03;
     }
 
