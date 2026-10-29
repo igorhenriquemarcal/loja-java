@@ -4,6 +4,10 @@ import modelo.Eletronico;
 import modelo.Produto;
 import modelo.Roupa;
 import java.util.ArrayList;
+import modelo.Pagamento;
+import modelo.Pix;
+import modelo.CartaoCredito;
+import modelo.Boleto;
 
 import java.util.Scanner;
 
@@ -88,6 +92,47 @@ public class Main {
         for (Produto p : produtos) {
             System.out.println(p.getNome() + " - " + p.descricaoExtra());
             System.out.printf("Frete: R$ %.2f%n", p.calcularFrete());
+        }
+
+        // ---------- Pagamento ----------
+        System.out.println("\n---Forma de pagamento---");
+        System.out.println("1 - Pix");
+        System.out.println("2 - Cartão de crédito");
+        System.out.println("3 - Boleto");
+        int opcaoPagamento = lerInt(sc, "Opção: ");
+
+        Pagamento pagamento;   // tipo da INTERFACE
+
+        switch (opcaoPagamento) {
+            case 1:
+                pagamento = new Pix();
+                break;
+            case 2:
+                pagamento = new CartaoCredito();
+                break;
+            case 3:
+                pagamento = new Boleto();
+                break;
+            default:
+                System.out.println("Opção inválida. Encerrando.");
+                return;
+        }
+
+        double total = produto.getPreco() + produto.calcularFrete();
+        System.out.printf("Pagando com %s: R$ %.2f%n",
+                pagamento.getNome(), pagamento.calcularValorFinal(total));
+        System.out.printf("Pagando com %s: R$ %.2f%n",
+                pagamento.getNome(), pagamento.calcularValorFinal(total));
+
+        System.out.println("\n---Comparativo de pagamentos---");
+
+        ArrayList<Pagamento> formas = new ArrayList<>();
+        formas.add(new Pix());
+        formas.add(new CartaoCredito());
+        formas.add(new Boleto());
+
+        for (Pagamento f : formas) {
+            System.out.printf("%s: R$ %.2f%n", f.getNome(), f.calcularValorFinal(total));
         }
     }
 
