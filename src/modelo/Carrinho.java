@@ -49,4 +49,23 @@ public class Carrinho {
     public void limpar() {
         itens.clear();
     }
+
+    // quantas unidades desse produto já estão no carrinho
+    public int getQuantidadeDoProduto(int codigo) {
+        for (ItemCarrinho item : itens) {
+            if (item.getProduto().getCodigo() == codigo) {
+                return item.getQuantidade();
+            }
+        }
+        return 0;
+    }
+
+    // soma o frete de cada linha do carrinho (um frete por produto diferente)
+    public double getFrete() {
+        double frete = 0;
+        for (ItemCarrinho item : itens) {
+            frete += item.getProduto().calcularFrete();
+        }
+        return frete;
+    }
 }
