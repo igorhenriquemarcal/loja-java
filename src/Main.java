@@ -1,4 +1,6 @@
 import modelo.*;
+import java.util.ArrayList;
+import java.util.List;
 
 import java.util.Scanner;
 
@@ -8,6 +10,7 @@ public class Main {
         Scanner sc = new Scanner(System.in);
         Catalogo catalogo = new Catalogo();
         Carrinho carrinho = new Carrinho();
+        List<Pedido> pedidos = new ArrayList<>();
         int opcao;
 
         do {
@@ -27,6 +30,12 @@ public class Main {
                 case 4:
                     verCarrinho(carrinho);
                     break;
+                case 5:
+                    finalizarPedido(sc, carrinho, pedidos);
+                    break;
+                case 6:
+                    mostrarHistorico(pedidos);
+                    break;
                 case 0:
                     System.out.println("Saindo...");
                     break;
@@ -43,6 +52,8 @@ public class Main {
         System.out.println("2 - Listar catálogo");
         System.out.println("3 - Adicionar ao carrinho");
         System.out.println("4 - Ver carrinho");
+        System.out.println("5 - Finalizar pedido");
+        System.out.println("6 - Histórico de pedidos");
         System.out.println("0 - Sair");
     }
 
@@ -157,6 +168,120 @@ public class Main {
         System.out.printf("Produtos: R$ %.2f%n", carrinho.getTotal());
         System.out.printf("Frete:    R$ %.2f%n", carrinho.getFrete());
         System.out.printf("Total:    R$ %.2f%n", carrinho.getTotal() + carrinho.getFrete());
+    }
+
+    // ---------- Opção 5 ----------
+    public static void finalizarPedido(Scanner sc, Carrinho carrinho, List<Pedido> pedidos) {
+        System.out.println("\n---Finalizar pedido---");
+
+        if (carrinho.estaVazio()) {
+            System.out.println("Carrinho vazio. Adicione produtos antes de finalizar.");
+            return;
+        }
+
+        // 1. dados do cliente
+        System.out.print("Nome do cliente: ");
+        String nome = sc.nextLine();
+        System.out.print("CPF: ");
+        String cpf = sc.nextLine();
+        System.out.print("E-mail: ");
+        String email = sc.nextLine();
+        Cliente cliente = new Cliente(nome, cpf, email);
+
+        // 2. forma de pagamento
+        Pagamento pagamento = escolherPagamento(sc);
+        if (pagamento == null) {
+            System.out.println("Forma de pagamento inválida. Pedido cancelado.");
+            return;
+        }
+
+        // 3. valor final (se o pagamento for recusado, o estoque ainda não foi tocado)
+        double frete = carrinho.getFrete();
+        double totalComFrete = carrinho.getTotal() + frete;
+        double valorFinal;
+
+        try {
+            valorFinal = pagamento.calcularValorFinal(totalComFrete);
+        } catch (PagamentoRecusadoException e) {
+            System.out.println("Pagamento recusado: " + e.getMessage());
+            return;
+        }
+
+        // 4. confere o estoque de TODOS os itens antes de alterar qualquer um
+        for (ItemCarrinho item : carrinho.getItens()) {
+            if (item.getQuantidade() > item.getProduto().getEstoque()) {
+                System.out.println("Estoque insuficiente de " + item.getProduto().getNome()
+                        + ". Disponível: " + item.getProduto().getEstoque());
+                return;
+            }
+        }
+
+        // 5. dá baixa no estoque
+        for (ItemCarrinho item : carrinho.getItens()) {
+            try {
+                item.getProduto().baixarEstoque(item.getQuantidade());
+            } catch (EstoqueInsuficienteException e) {
+                // não deve acontecer, pois já conferimos acima
+                System.out.println("Erro inesperado: " + e.getMessage());
+                return;
+            }
+        }
+
+        // 6. registra o pedido ANTES de limpar o carrinho
+        Pedido pedido = new Pedido(cliente, carrinho.getItens(), frete,
+                pagamento.getNome(), valorFinal);
+        pedidos.add(pedido);
+        carrinho.limpar();
+
+        System.out.println("\nPedido finalizado com sucesso!");
+        System.out.printf("Pago com %s: R$ %.2f%n", pedido.getFormaPagamento(), pedido.getValorFinal());
+    }
+
+    // devolve null se a opção for inválida
+    public static Pagamento escolherPagamento(Scanner sc) {
+        System.out.println("\nForma de pagamento:");
+        System.out.println("1 - Pix");
+        System.out.println("2 - Cartão de crédito");
+        System.out.println("3 - Boleto");
+        int opcao = lerInt(sc, "Opção: ");
+
+        switch (opcao) {
+            case 1:
+                return new Pix();
+            case 2:
+                return new CartaoCredito();
+            case 3:
+                return new Boleto();
+            default:
+                return null;
+        }
+    }
+
+    // ---------- Opção 6 ----------
+    public static void mostrarHistorico(List<Pedido> pedidos) {
+        System.out.println("\n---Histórico de pedidos---");
+
+        if (pedidos.isEmpty()) {
+            System.out.println("Nenhum pedido finalizado.");
+            return;
+        }
+
+        int numero = 1;
+        for (Pedido pedido : pedidos) {
+            System.out.printf("%nPedido #%d - %s (%s)%n",
+                    numero, pedido.getCliente().getNome(), pedido.getCliente().getEmail());
+
+            for (ItemCarrinho item : pedido.getItens()) {
+                System.out.printf("  %dx %s | subtotal: R$ %.2f%n",
+                        item.getQuantidade(), item.getProduto().getNome(), item.getSubtotal());
+            }
+
+            System.out.printf("  Produtos: R$ %.2f | Frete: R$ %.2f%n",
+                    pedido.getSubtotal(), pedido.getFrete());
+            System.out.printf("  Pago com %s: R$ %.2f%n",
+                    pedido.getFormaPagamento(), pedido.getValorFinal());
+            numero++;
+        }
     }
 
     // ---------- Leitura com validação ----------
