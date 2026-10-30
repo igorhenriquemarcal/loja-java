@@ -1,29 +1,63 @@
 import modelo.*;
-import modelo.PagamentoRecusadoException;
-
-import java.util.ArrayList;
 
 import java.util.Scanner;
 
 public class Main {
 
     public static void main(String[] args) {
-
         Scanner sc = new Scanner(System.in);
+        Catalogo catalogo = new Catalogo();
+        int opcao;
 
+        do {
+            mostrarMenu();
+            opcao = lerInt(sc, "Opção: ");
 
-        // ---------- Cadastro de produto ----------
-        System.out.println("---Cadastro de Produtos---");
+            switch (opcao) {
+                case 1:
+                    cadastrarProduto(sc, catalogo);
+                    break;
+                case 2:
+                    listarCatalogo(catalogo);
+                    break;
+                case 0:
+                    System.out.println("Saindo...");
+                    break;
+                default:
+                    System.out.println("Opção inválida.");
+            }
+        } while (opcao != 0);
+    }
+
+    // ---------- Menu ----------
+    public static void mostrarMenu() {
+        System.out.println("\n===== LOJA =====");
+        System.out.println("1 - Cadastrar produto no catálogo");
+        System.out.println("2 - Listar catálogo");
+        System.out.println("0 - Sair");
+    }
+
+    // ---------- Opção 1 ----------
+    public static void cadastrarProduto(Scanner sc, Catalogo catalogo) {
+        System.out.println("\n---Cadastro de Produto---");
         System.out.println("1 - Eletrônico");
         System.out.println("2 - Roupa");
         System.out.println("3 - Alimento");
         int tipo = lerInt(sc, "Tipo: ");
 
+        if (tipo < 1 || tipo > 3) {
+            System.out.println("Tipo inválido.");
+            return;
+        }
+
         int codigo = lerInt(sc, "Código: ");
+        if (catalogo.buscar(codigo) != null) {
+            System.out.println("Já existe um produto com o código " + codigo + ".");
+            return;
+        }
 
         System.out.print("Nome: ");
-        String nomeProduto = sc.nextLine();
-
+        String nome = sc.nextLine();
         double preco = lerDouble(sc, "Preço: ");
         int estoque = lerInt(sc, "Estoque: ");
 
@@ -32,124 +66,40 @@ public class Main {
         switch (tipo) {
             case 1:
                 int garantia = lerInt(sc, "Garantia (meses): ");
-                produto = new Eletronico(codigo, nomeProduto, preco, estoque, garantia);
+                produto = new Eletronico(codigo, nome, preco, estoque, garantia);
                 break;
             case 2:
                 System.out.print("Tamanho (P, M, G): ");
                 String tamanho = sc.nextLine();
-                produto = new Roupa(codigo, nomeProduto, preco, estoque, tamanho);
+                produto = new Roupa(codigo, nome, preco, estoque, tamanho);
                 break;
-            case 3:
+            default:
                 System.out.print("Data de validade: ");
                 String validade = sc.nextLine();
-                produto = new Alimento(codigo, nomeProduto, preco, estoque, validade);
+                produto = new Alimento(codigo, nome, preco, estoque, validade);
                 break;
-            default:
-                System.out.println("Tipo inválido. Encerrando.");
-                return;
         }
 
-        // ---------- Cadastro de cliente ----------
-        System.out.println("\n---Cadastro de Clientes---");
-        System.out.print("Nome: ");
-        String nomeCliente = sc.nextLine();
+        catalogo.adicionar(produto);
+        System.out.println("Produto cadastrado!");
+    }
 
-        System.out.print("CPF: ");
-        String cpfCliente = sc.nextLine();
+    // ---------- Opção 2 ----------
+    public static void listarCatalogo(Catalogo catalogo) {
+        System.out.println("\n---Catálogo---");
 
-        System.out.print("Email: ");
-        String emailCliente = sc.nextLine();
-
-        Cliente cliente = new Cliente(nomeCliente, cpfCliente, emailCliente);
-
-        // ---------- Exibição ----------
-        System.out.println("\n---Produto cadastrado---");
-        System.out.printf("Código: %d%nNome: %s%nPreço: R$%.2f%nEstoque: %d%n",
-                produto.getCodigo(), produto.getNome(), produto.getPreco(), produto.getEstoque());
-
-        // dado exclusivo de cada tipo
-        System.out.println(produto.descricaoExtra());
-        System.out.printf("Frete: R$ %.2f%n", produto.calcularFrete());
-        System.out.printf("Total: R$ %.2f%n", produto.getPreco() + produto.calcularFrete());
-
-        System.out.println("\n---Cliente cadastrado---");
-        System.out.printf("Nome: %s%nCPF: %s%nEmail: %s%n",
-                cliente.getNome(), cliente.getCpf(), cliente.getEmail());
-
-
-        System.out.println("\n---Catálogo de exemplo---");
-
-        ArrayList<Produto> produtos = new ArrayList<>();
-        produtos.add(new Eletronico(1, "Fone", 200.0, 5, 12));
-        produtos.add(new Roupa(2, "Camiseta", 80.0, 20, "M"));
-        produtos.add(new Alimento(3, "Arroz 5kg", 30.0, 50, "31/12/2026"));
-
-        for (Produto p : produtos) {
-            System.out.println(p.getNome() + " - " + p.descricaoExtra());
-            System.out.printf("Frete: R$ %.2f%n", p.calcularFrete());
+        if (catalogo.listar().isEmpty()) {
+            System.out.println("Nenhum produto cadastrado.");
+            return;
         }
 
-        // ---------- Compra (baixa de estoque) ----------
-        System.out.println("\n---Compra---");
-        boolean compraOk = false;
-
-        while (!compraOk) {
-            int quantidade = lerInt(sc, "Quantidade desejada: ");
-            try {
-                produto.baixarEstoque(quantidade);
-                System.out.println("Compra realizada! Estoque restante: " + produto.getEstoque());
-                compraOk = true;
-            } catch (EstoqueInsuficienteException e) {
-                System.out.println("Erro: " + e.getMessage());
-            }
-        }
-
-        // ---------- Pagamento ----------
-        System.out.println("\n---Forma de pagamento---");
-        System.out.println("1 - Pix");
-        System.out.println("2 - Cartão de crédito");
-        System.out.println("3 - Boleto");
-        int opcaoPagamento = lerInt(sc, "Opção: ");
-
-        Pagamento pagamento;   // tipo da INTERFACE
-
-        switch (opcaoPagamento) {
-            case 1:
-                pagamento = new Pix();
-                break;
-            case 2:
-                pagamento = new CartaoCredito();
-                break;
-            case 3:
-                pagamento = new Boleto();
-                break;
-            default:
-                System.out.println("Opção inválida. Encerrando.");
-                return;
-        }
-
-        double total = produto.getPreco() + produto.calcularFrete();
-
-        try {
-            System.out.printf("Pagando com %s: R$ %.2f%n",
-                    pagamento.getNome(), pagamento.calcularValorFinal(total));
-
-            System.out.println("\n---Comparativo de pagamentos---");
-
-            ArrayList<Pagamento> formas = new ArrayList<>();
-            formas.add(new Pix());
-            formas.add(new CartaoCredito());
-            formas.add(new Boleto());
-
-            for (Pagamento f : formas) {
-                System.out.printf("%s: R$ %.2f%n", f.getNome(), f.calcularValorFinal(total));
-            }
-        } catch (PagamentoRecusadoException e) {
-            System.out.println("Pagamento recusado: " + e.getMessage());
+        for (Produto p : catalogo.listar()) {
+            System.out.printf("[%d] %s | R$ %.2f | estoque: %d | %s%n",
+                    p.getCodigo(), p.getNome(), p.getPreco(), p.getEstoque(), p.descricaoExtra());
         }
     }
 
-    // Métodos para leitura com validação try/catch
+    // ---------- Leitura com validação ----------
     public static int lerInt(Scanner sc, String mensagem) {
         while (true) {
             try {
