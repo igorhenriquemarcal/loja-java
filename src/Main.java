@@ -11,6 +11,19 @@ public class Main {
 
         Scanner sc = new Scanner(System.in);
 
+        Catalogo catalogo = new Catalogo();
+        catalogo.adicionar(new Eletronico(1, "Fone", 200.0, 5, 12));
+        catalogo.adicionar(new Roupa(2, "Camiseta", 80.0, 20, "M"));
+
+        boolean repetido = catalogo.adicionar(new Roupa(2, "Outra", 50.0, 3, "G"));
+        System.out.println("Código 2 repetido foi aceito? " + repetido);   // false
+
+        Produto achado = catalogo.buscar(1);
+        System.out.println(achado.getNome());                              // Fone
+
+        ItemCarrinho item = new ItemCarrinho(achado, 3);
+        System.out.println("Subtotal: " + item.getSubtotal());             // 600.0
+
         // ---------- Cadastro de produto ----------
         System.out.println("---Cadastro de Produtos---");
         System.out.println("1 - Eletrônico");
