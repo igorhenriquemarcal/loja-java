@@ -1,0 +1,105 @@
+package app;
+
+import javafx.application.Application;
+import javafx.geometry.Insets;
+import javafx.scene.Node;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
+import modelo.Alimento;
+import modelo.Catalogo;
+import modelo.Eletronico;
+import modelo.Produto;
+import modelo.Roupa;
+
+public class LojaApp extends Application {
+
+    private final Catalogo catalogo = new Catalogo();
+
+    @Override
+    public void start(Stage stage) {
+        carregarDadosDeExemplo();
+
+        BorderPane raiz = new BorderPane();
+        raiz.setTop(criarTopo());
+        raiz.setLeft(criarMenuLateral());
+        raiz.setCenter(criarAreaCatalogo());
+        raiz.setBottom(criarRodape());
+
+        Scene cena = new Scene(raiz, 900, 560);
+
+        stage.setTitle("Loja Java");
+        stage.setScene(cena);
+        stage.show();
+    }
+
+    // dados temporários, só para a tela ter o que mostrar
+    private void carregarDadosDeExemplo() {
+        catalogo.adicionar(new Eletronico(1, "Fone", 200.0, 5, 12));
+        catalogo.adicionar(new Roupa(2, "Camiseta", 80.0, 20, "M"));
+        catalogo.adicionar(new Alimento(3, "Arroz 5kg", 30.0, 50, "31/12/2026"));
+    }
+
+    // ---------- Topo ----------
+    private Node criarTopo() {
+        Label titulo = new Label("Loja Java");
+        titulo.setStyle("-fx-font-size: 22px; -fx-font-weight: bold;");
+
+        HBox topo = new HBox(titulo);
+        topo.setPadding(new Insets(15));
+        return topo;
+    }
+
+    // ---------- Menu lateral ----------
+    private Node criarMenuLateral() {
+        Button btnCatalogo = new Button("Catálogo");
+        Button btnCarrinho = new Button("Carrinho");
+        Button btnPedidos = new Button("Pedidos");
+
+        // faz cada botão ocupar toda a largura do menu
+        btnCatalogo.setMaxWidth(Double.MAX_VALUE);
+        btnCarrinho.setMaxWidth(Double.MAX_VALUE);
+        btnPedidos.setMaxWidth(Double.MAX_VALUE);
+
+        VBox menu = new VBox(10, btnCatalogo, btnCarrinho, btnPedidos);
+        menu.setPadding(new Insets(15));
+        menu.setPrefWidth(170);
+        return menu;
+    }
+
+    // ---------- Centro: catálogo ----------
+    private Node criarAreaCatalogo() {
+        Label subtitulo = new Label("Catálogo");
+        subtitulo.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+
+        TextField campoBusca = new TextField();
+        campoBusca.setPromptText("Buscar produto...");
+
+        ListView<String> lista = new ListView<>();
+        for (Produto p : catalogo.listar()) {
+            lista.getItems().add(String.format("[%d] %s | R$ %.2f | estoque: %d | %s",
+                    p.getCodigo(), p.getNome(), p.getPreco(), p.getEstoque(), p.descricaoExtra()));
+        }
+
+        VBox area = new VBox(10, subtitulo, campoBusca, lista);
+        VBox.setVgrow(lista, Priority.ALWAYS);   // a lista ocupa o espaço que sobrar
+        area.setPadding(new Insets(15));
+        return area;
+    }
+
+    // ---------- Rodapé ----------
+    private Node criarRodape() {
+        Label total = new Label("Produtos no catálogo: " + catalogo.listar().size());
+
+        HBox rodape = new HBox(total);
+        rodape.setPadding(new Insets(10));
+        return rodape;
+    }
+}
