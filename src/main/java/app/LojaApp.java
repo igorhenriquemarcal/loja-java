@@ -1,5 +1,7 @@
 package app;
 
+import java.util.List;
+
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
@@ -83,15 +85,25 @@ public class LojaApp extends Application {
         campoBusca.setPromptText("Buscar produto...");
 
         ListView<String> lista = new ListView<>();
-        for (Produto p : catalogo.listar()) {
-            lista.getItems().add(String.format("[%d] %s | R$ %.2f | estoque: %d | %s",
-                    p.getCodigo(), p.getNome(), p.getPreco(), p.getEstoque(), p.descricaoExtra()));
-        }
+        lista.setPlaceholder(new Label("Nenhum produto encontrado"));
+        preencherLista(lista, catalogo.listar());
+
+        // a cada tecla, refaz a lista só com os produtos que batem
+        campoBusca.textProperty().addListener((obs, textoAntigo, textoNovo) ->
+                preencherLista(lista, catalogo.buscarPorNome(textoNovo)));
 
         VBox area = new VBox(10, subtitulo, campoBusca, lista);
         VBox.setVgrow(lista, Priority.ALWAYS);   // a lista ocupa o espaço que sobrar
         area.setPadding(new Insets(15));
         return area;
+    }
+
+    private void preencherLista(ListView<String> lista, List<Produto> produtos) {
+        lista.getItems().clear();
+        for (Produto p : produtos) {
+            lista.getItems().add(String.format("[%d] %s | R$ %.2f | estoque: %d | %s",
+                    p.getCodigo(), p.getNome(), p.getPreco(), p.getEstoque(), p.descricaoExtra()));
+        }
     }
 
     // ---------- Rodapé ----------

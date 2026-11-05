@@ -16,6 +16,16 @@ public class Catalogo {
         produtos.put(produto.getCodigo(), produto);
         return true;
     }
+    public List<Produto> buscarPorNome(String termo) {
+        String busca = termo.trim().toLowerCase();
+        List<Produto> resultado = new ArrayList<>();
+        for (Produto p : produtos.values()) {
+            if (p.getNome().toLowerCase().contains(busca)) {
+                resultado.add(p);
+            }
+        }
+        return resultado;
+    }
 
     public Produto buscar(int codigo) {
         return produtos.get(codigo);
