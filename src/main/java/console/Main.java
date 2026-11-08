@@ -196,46 +196,19 @@ public class Main {
             return;
         }
 
-        // 3. valor final (se o pagamento for recusado, o estoque ainda não foi tocado)
-        double frete = carrinho.getFrete();
-        double totalComFrete = carrinho.getTotal() + frete;
-        double valorFinal;
-
+        // 3. a regra de negócio fica no serviço; aqui só tratamos o resultado
+        ServicoPedido servico = new ServicoPedido();
         try {
-            valorFinal = pagamento.calcularValorFinal(totalComFrete);
+            Pedido pedido = servico.finalizar(carrinho, cliente, pagamento);
+            pedidos.add(pedido);
+
+            System.out.println("\nPedido finalizado com sucesso!");
+            System.out.printf("Pago com %s: R$ %.2f%n", pedido.getFormaPagamento(), pedido.getValorFinal());
         } catch (PagamentoRecusadoException e) {
             System.out.println("Pagamento recusado: " + e.getMessage());
-            return;
+        } catch (EstoqueInsuficienteException e) {
+            System.out.println(e.getMessage());
         }
-
-        // 4. confere o estoque de TODOS os itens antes de alterar qualquer um
-        for (ItemCarrinho item : carrinho.getItens()) {
-            if (item.getQuantidade() > item.getProduto().getEstoque()) {
-                System.out.println("Estoque insuficiente de " + item.getProduto().getNome()
-                        + ". Disponível: " + item.getProduto().getEstoque());
-                return;
-            }
-        }
-
-        // 5. dá baixa no estoque
-        for (ItemCarrinho item : carrinho.getItens()) {
-            try {
-                item.getProduto().baixarEstoque(item.getQuantidade());
-            } catch (EstoqueInsuficienteException e) {
-                // não deve acontecer, pois já conferimos acima
-                System.out.println("Erro inesperado: " + e.getMessage());
-                return;
-            }
-        }
-
-        // 6. registra o pedido ANTES de limpar o carrinho
-        Pedido pedido = new Pedido(cliente, carrinho.getItens(), frete,
-                pagamento.getNome(), valorFinal);
-        pedidos.add(pedido);
-        carrinho.limpar();
-
-        System.out.println("\nPedido finalizado com sucesso!");
-        System.out.printf("Pago com %s: R$ %.2f%n", pedido.getFormaPagamento(), pedido.getValorFinal());
     }
 
     // devolve null se a opção for inválida
