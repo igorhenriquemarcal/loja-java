@@ -162,13 +162,46 @@ public class LojaApp extends Application {
         Label subtitulo = new Label("Carrinho");
         subtitulo.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
 
-        ListView<String> lista = new ListView<>();
+        // a lista guarda os itens do carrinho, não texto
+        ListView<ItemCarrinho> lista = new ListView<>();
         lista.setPlaceholder(new Label("Carrinho vazio"));
-        for (ItemCarrinho item : carrinho.getItens()) {
-            Produto p = item.getProduto();
-            lista.getItems().add(String.format("%dx %s | R$ %.2f cada | subtotal: R$ %.2f",
-                    item.getQuantidade(), p.getNome(), p.getPreco(), item.getSubtotal()));
-        }
+
+        // define como cada item aparece na lista
+        lista.setCellFactory(lv -> new ListCell<>() {
+            @Override
+            protected void updateItem(ItemCarrinho item, boolean vazio) {
+                super.updateItem(item, vazio);
+                if (vazio || item == null) {
+                    setText(null);
+                } else {
+                    Produto p = item.getProduto();
+                    setText(String.format("%dx %s | R$ %.2f cada | subtotal: R$ %.2f",
+                            item.getQuantidade(), p.getNome(), p.getPreco(), item.getSubtotal()));
+                }
+            }
+        });
+
+        lista.getItems().setAll(carrinho.getItens());
+
+        // ---- remover do carrinho ----
+        Button btnRemover = new Button("Remover item");
+        Label lblMensagem = new Label();
+
+        btnRemover.setOnAction(e -> {
+            ItemCarrinho selecionado = lista.getSelectionModel().getSelectedItem();
+            if (selecionado == null) {
+                lblMensagem.setText("Selecione um item para remover.");
+                return;
+            }
+
+            carrinho.remover(selecionado.getProduto().getCodigo());
+
+            // remonta a tela do carrinho com a lista e os totais atualizados
+            raiz.setCenter(criarAreaCarrinho());
+        });
+
+        HBox acoes = new HBox(10, btnRemover, lblMensagem);
+        acoes.setAlignment(Pos.CENTER_LEFT);
 
         Label lblSubtotal = new Label(String.format("Subtotal: R$ %.2f", carrinho.getTotal()));
         Label lblFrete = new Label(String.format("Frete: R$ %.2f", carrinho.getFrete()));
@@ -178,7 +211,7 @@ public class LojaApp extends Application {
 
         VBox resumo = new VBox(5, lblSubtotal, lblFrete, lblTotal);
 
-        VBox area = new VBox(10, subtitulo, lista, resumo);
+        VBox area = new VBox(10, subtitulo, lista, acoes, resumo);
         VBox.setVgrow(lista, Priority.ALWAYS);
         area.setPadding(new Insets(15));
         return area;
