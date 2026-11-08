@@ -1,14 +1,15 @@
 package app;
 
-import java.util.List;
-
 import javafx.application.Application;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.control.Spinner;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
@@ -53,10 +54,6 @@ public class LojaApp extends Application {
         catalogo.adicionar(new Eletronico(1, "Fone", 200.0, 5, 12));
         catalogo.adicionar(new Roupa(2, "Camiseta", 80.0, 20, "M"));
         catalogo.adicionar(new Alimento(3, "Arroz 5kg", 30.0, 50, "31/12/2026"));
-
-        // temporário: sai quando o botão "Adicionar ao carrinho" existir
-        carrinho.adicionar(catalogo.buscar(1), 1);
-        carrinho.adicionar(catalogo.buscar(2), 2);
     }
 
     // ---------- Topo ----------
@@ -98,26 +95,66 @@ public class LojaApp extends Application {
         TextField campoBusca = new TextField();
         campoBusca.setPromptText("Buscar produto...");
 
-        ListView<String> lista = new ListView<>();
+        // a lista guarda os próprios produtos, não texto
+        ListView<Produto> lista = new ListView<>();
         lista.setPlaceholder(new Label("Nenhum produto encontrado"));
-        preencherLista(lista, catalogo.listar());
+
+        // define como cada produto aparece na lista
+        lista.setCellFactory(lv -> new ListCell<>() {
+            @Override
+            protected void updateItem(Produto p, boolean vazio) {
+                super.updateItem(p, vazio);
+                if (vazio || p == null) {
+                    setText(null);
+                } else {
+                    setText(String.format("[%d] %s | R$ %.2f | estoque: %d | %s",
+                            p.getCodigo(), p.getNome(), p.getPreco(), p.getEstoque(), p.descricaoExtra()));
+                }
+            }
+        });
+
+        lista.getItems().setAll(catalogo.listar());
 
         // a cada tecla, refaz a lista só com os produtos que batem
         campoBusca.textProperty().addListener((obs, textoAntigo, textoNovo) ->
-                preencherLista(lista, catalogo.buscarPorNome(textoNovo)));
+                lista.getItems().setAll(catalogo.buscarPorNome(textoNovo)));
 
-        VBox area = new VBox(10, subtitulo, campoBusca, lista);
+        // ---- adicionar ao carrinho ----
+        Spinner<Integer> spnQuantidade = new Spinner<>(1, 99, 1);
+        spnQuantidade.setPrefWidth(80);
+
+        Button btnAdicionar = new Button("Adicionar ao carrinho");
+        Label lblMensagem = new Label();
+
+        btnAdicionar.setOnAction(e -> {
+            Produto selecionado = lista.getSelectionModel().getSelectedItem();
+            if (selecionado == null) {
+                lblMensagem.setText("Selecione um produto na lista.");
+                return;
+            }
+
+            int quantidade = spnQuantidade.getValue();
+            int jaNoCarrinho = carrinho.getQuantidadeDoProduto(selecionado.getCodigo());
+
+            // valida antes de alterar: não deixa passar do estoque
+            if (jaNoCarrinho + quantidade > selecionado.getEstoque()) {
+                lblMensagem.setText(String.format("Estoque insuficiente: %d disponíveis, %d já no carrinho.",
+                        selecionado.getEstoque(), jaNoCarrinho));
+                return;
+            }
+
+            carrinho.adicionar(selecionado, quantidade);
+            lblMensagem.setText(String.format("%dx %s adicionado ao carrinho.",
+                    quantidade, selecionado.getNome()));
+        });
+
+        HBox acoes = new HBox(10, new Label("Qtd:"), spnQuantidade, btnAdicionar, lblMensagem);
+        acoes.setAlignment(Pos.CENTER_LEFT);
+
+        VBox area = new VBox(10, subtitulo, campoBusca, lista, acoes);
         VBox.setVgrow(lista, Priority.ALWAYS);   // a lista ocupa o espaço que sobrar
         area.setPadding(new Insets(15));
         return area;
-    }
-
-    private void preencherLista(ListView<String> lista, List<Produto> produtos) {
-        lista.getItems().clear();
-        for (Produto p : produtos) {
-            lista.getItems().add(String.format("[%d] %s | R$ %.2f | estoque: %d | %s",
-                    p.getCodigo(), p.getNome(), p.getPreco(), p.getEstoque(), p.descricaoExtra()));
-        }
     }
 
     // ---------- Centro: carrinho ----------
