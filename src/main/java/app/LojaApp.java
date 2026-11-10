@@ -1,14 +1,20 @@
 package app;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.control.Separator;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
@@ -16,18 +22,14 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import modelo.Alimento;
-import modelo.Carrinho;
-import modelo.Catalogo;
-import modelo.Eletronico;
-import modelo.ItemCarrinho;
-import modelo.Produto;
-import modelo.Roupa;
+import modelo.*;
 
 public class LojaApp extends Application {
 
     private final Catalogo catalogo = new Catalogo();
     private final Carrinho carrinho = new Carrinho();
+    private final List<Pedido> pedidos = new ArrayList<>();
+    private final ServicoPedido servicoPedido = new ServicoPedido();
 
     // atributo para os botões do menu conseguirem trocar o centro da tela
     private BorderPane raiz;
@@ -42,7 +44,7 @@ public class LojaApp extends Application {
         raiz.setCenter(criarAreaCatalogo());
         raiz.setBottom(criarRodape());
 
-        Scene cena = new Scene(raiz, 900, 560);
+        Scene cena = new Scene(raiz, 900, 600);
 
         stage.setTitle("Loja Java");
         stage.setScene(cena);
@@ -203,6 +205,7 @@ public class LojaApp extends Application {
         HBox acoes = new HBox(10, btnRemover, lblMensagem);
         acoes.setAlignment(Pos.CENTER_LEFT);
 
+        // ---- resumo de valores ----
         Label lblSubtotal = new Label(String.format("Subtotal: R$ %.2f", carrinho.getTotal()));
         Label lblFrete = new Label(String.format("Frete: R$ %.2f", carrinho.getFrete()));
         Label lblTotal = new Label(String.format("Total: R$ %.2f",
@@ -211,10 +214,93 @@ public class LojaApp extends Application {
 
         VBox resumo = new VBox(5, lblSubtotal, lblFrete, lblTotal);
 
-        VBox area = new VBox(10, subtitulo, lista, acoes, resumo);
+        // ---- finalizar pedido ----
+        Label tituloFinalizar = new Label("Finalizar pedido");
+        tituloFinalizar.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+
+        TextField txtNome = new TextField();
+        txtNome.setPromptText("Nome do cliente");
+        TextField txtCpf = new TextField();
+        txtCpf.setPromptText("CPF");
+        TextField txtEmail = new TextField();
+        txtEmail.setPromptText("E-mail");
+
+        HBox linhaCliente = new HBox(10, txtNome, txtCpf, txtEmail);
+
+        ComboBox<String> cmbPagamento = new ComboBox<>();
+        cmbPagamento.getItems().addAll("Pix", "Cartão de crédito", "Boleto");
+        cmbPagamento.setPromptText("Forma de pagamento");
+
+        Button btnFinalizar = new Button("Finalizar pedido");
+        Label lblMensagemPedido = new Label();
+
+        btnFinalizar.setOnAction(e -> {
+            // cláusulas de guarda: confere tudo que a tela é responsável por conferir
+            if (carrinho.estaVazio()) {
+                lblMensagemPedido.setText("Carrinho vazio. Adicione produtos antes de finalizar.");
+                return;
+            }
+            if (txtNome.getText().isBlank()) {
+                lblMensagemPedido.setText("Informe o nome do cliente.");
+                return;
+            }
+
+            Pagamento pagamento = criarPagamento(cmbPagamento.getValue());
+            if (pagamento == null) {
+                lblMensagemPedido.setText("Escolha a forma de pagamento.");
+                return;
+            }
+
+            Cliente cliente = new Cliente(txtNome.getText().trim(),
+                    txtCpf.getText().trim(), txtEmail.getText().trim());
+
+            // a regra de negócio fica no serviço; aqui só tratamos o resultado
+            try {
+                Pedido pedido = servicoPedido.finalizar(carrinho, cliente, pagamento);
+                pedidos.add(pedido);
+
+                Alert alerta = new Alert(Alert.AlertType.INFORMATION);
+                alerta.setTitle("Pedido finalizado");
+                alerta.setHeaderText(null);
+                alerta.setContentText(String.format("Pedido de %s finalizado com sucesso!%nPago com %s: R$ %.2f",
+                        cliente.getNome(), pedido.getFormaPagamento(), pedido.getValorFinal()));
+                alerta.showAndWait();
+
+                // carrinho foi limpo pelo serviço: remonta a tela vazia
+                raiz.setCenter(criarAreaCarrinho());
+            } catch (PagamentoRecusadoException ex) {
+                lblMensagemPedido.setText("Pagamento recusado: " + ex.getMessage());
+            } catch (EstoqueInsuficienteException ex) {
+                lblMensagemPedido.setText(ex.getMessage());
+            }
+        });
+
+        HBox linhaPagamento = new HBox(10, cmbPagamento, btnFinalizar, lblMensagemPedido);
+        linhaPagamento.setAlignment(Pos.CENTER_LEFT);
+
+        VBox area = new VBox(10, subtitulo, lista, acoes, resumo,
+                new Separator(), tituloFinalizar, linhaCliente, linhaPagamento);
         VBox.setVgrow(lista, Priority.ALWAYS);
         area.setPadding(new Insets(15));
         return area;
+    }
+
+    // transforma o texto escolhido na caixa em um objeto de pagamento;
+    // devolve null se nada foi escolhido
+    private Pagamento criarPagamento(String opcao) {
+        if (opcao == null) {
+            return null;
+        }
+        switch (opcao) {
+            case "Pix":
+                return new Pix();
+            case "Cartão de crédito":
+                return new CartaoCredito();
+            case "Boleto":
+                return new Boleto();
+            default:
+                return null;
+        }
     }
 
     // ---------- Rodapé ----------
