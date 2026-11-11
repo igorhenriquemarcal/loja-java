@@ -83,6 +83,8 @@ public class LojaApp extends Application {
         btnCatalogo.setOnAction(e -> raiz.setCenter(criarAreaCatalogo()));
         btnCarrinho.setOnAction(e -> raiz.setCenter(criarAreaCarrinho()));
 
+        btnPedidos.setOnAction(e -> raiz.setCenter(criarAreaPedidos()));
+
         VBox menu = new VBox(10, btnCatalogo, btnCarrinho, btnPedidos);
         menu.setPadding(new Insets(15));
         menu.setPrefWidth(170);
@@ -280,6 +282,61 @@ public class LojaApp extends Application {
 
         VBox area = new VBox(10, subtitulo, lista, acoes, resumo,
                 new Separator(), tituloFinalizar, linhaCliente, linhaPagamento);
+        VBox.setVgrow(lista, Priority.ALWAYS);
+        area.setPadding(new Insets(15));
+        return area;
+    }
+    // ---------- Centro: pedidos ----------
+    private Node criarAreaPedidos() {
+        Label subtitulo = new Label("Pedidos");
+        subtitulo.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+
+        ListView<Pedido> lista = new ListView<>();
+        lista.setPlaceholder(new Label("Nenhum pedido finalizado"));
+
+        // resumo de cada pedido na lista
+        lista.setCellFactory(lv -> new ListCell<>() {
+            @Override
+            protected void updateItem(Pedido pedido, boolean vazio) {
+                super.updateItem(pedido, vazio);
+                if (vazio || pedido == null) {
+                    setText(null);
+                } else {
+                    setText(String.format("Pedido #%d - %s | %s | R$ %.2f",
+                            getIndex() + 1, pedido.getCliente().getNome(),
+                            pedido.getFormaPagamento(), pedido.getValorFinal()));
+                }
+            }
+        });
+
+        lista.getItems().setAll(pedidos);
+
+        Label lblDetalhes = new Label("Selecione um pedido para ver os detalhes.");
+        lblDetalhes.setWrapText(true);
+
+        // quando a seleção muda, mostra os detalhes do pedido escolhido
+        lista.getSelectionModel().selectedItemProperty().addListener((obs, antigo, novo) -> {
+            if (novo == null) {
+                lblDetalhes.setText("Selecione um pedido para ver os detalhes.");
+                return;
+            }
+
+            StringBuilder texto = new StringBuilder();
+            texto.append(String.format("Cliente: %s (%s)%n",
+                    novo.getCliente().getNome(), novo.getCliente().getEmail()));
+            for (ItemCarrinho item : novo.getItens()) {
+                texto.append(String.format("   %dx %s | subtotal: R$ %.2f%n",
+                        item.getQuantidade(), item.getProduto().getNome(), item.getSubtotal()));
+            }
+            texto.append(String.format("Produtos: R$ %.2f | Frete: R$ %.2f%n",
+                    novo.getSubtotal(), novo.getFrete()));
+            texto.append(String.format("Pago com %s: R$ %.2f",
+                    novo.getFormaPagamento(), novo.getValorFinal()));
+
+            lblDetalhes.setText(texto.toString());
+        });
+
+        VBox area = new VBox(10, subtitulo, lista, new Separator(), lblDetalhes);
         VBox.setVgrow(lista, Priority.ALWAYS);
         area.setPadding(new Insets(15));
         return area;
