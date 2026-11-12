@@ -9,7 +9,19 @@ public class Carrinho {
     private List<ItemCarrinho> itens = new ArrayList<>();
 
     // se o produto já está no carrinho, soma a quantidade
-    public void adicionar(Produto produto, int quantidade) {
+    // valida antes de alterar: quantidade positiva e sem passar do estoque;
+    // se o produto já está no carrinho, soma a quantidade
+    public void adicionar(Produto produto, int quantidade) throws EstoqueInsuficienteException {
+        if (quantidade <= 0) {
+            throw new EstoqueInsuficienteException("A quantidade deve ser maior que zero.");
+        }
+
+        int disponivel = produto.getEstoque() - getQuantidadeDoProduto(produto.getCodigo());
+        if (quantidade > disponivel) {
+            throw new EstoqueInsuficienteException("Estoque insuficiente de " + produto.getNome()
+                    + ". Você pode adicionar no máximo " + disponivel + " unidade(s).");
+        }
+
         for (ItemCarrinho item : itens) {
             if (item.getProduto().getCodigo() == produto.getCodigo()) {
                 item.somarQuantidade(quantidade);
