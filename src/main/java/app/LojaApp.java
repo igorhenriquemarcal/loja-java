@@ -34,6 +34,9 @@ public class LojaApp extends Application {
     // atributo para os botões do menu conseguirem trocar o centro da tela
     private BorderPane raiz;
 
+    // atributo para o rodapé poder ser atualizado depois de criado
+    private Label lblTotalProdutos;
+
     @Override
     public void start(Stage stage) {
         carregarDadosDeExemplo();
@@ -73,19 +76,21 @@ public class LojaApp extends Application {
         Button btnCatalogo = new Button("Catálogo");
         Button btnCarrinho = new Button("Carrinho");
         Button btnPedidos = new Button("Pedidos");
+        Button btnCadastro = new Button("Cadastrar produto");
 
         // faz cada botão ocupar toda a largura do menu
         btnCatalogo.setMaxWidth(Double.MAX_VALUE);
         btnCarrinho.setMaxWidth(Double.MAX_VALUE);
         btnPedidos.setMaxWidth(Double.MAX_VALUE);
+        btnCadastro.setMaxWidth(Double.MAX_VALUE);
 
         // o que acontece no clique: troca o conteúdo do centro
         btnCatalogo.setOnAction(e -> raiz.setCenter(criarAreaCatalogo()));
         btnCarrinho.setOnAction(e -> raiz.setCenter(criarAreaCarrinho()));
-
         btnPedidos.setOnAction(e -> raiz.setCenter(criarAreaPedidos()));
+        btnCadastro.setOnAction(e -> raiz.setCenter(criarAreaCadastro()));
 
-        VBox menu = new VBox(10, btnCatalogo, btnCarrinho, btnPedidos);
+        VBox menu = new VBox(10, btnCatalogo, btnCarrinho, btnPedidos, new Separator(), btnCadastro);
         menu.setPadding(new Insets(15));
         menu.setPrefWidth(170);
         return menu;
@@ -138,18 +143,15 @@ public class LojaApp extends Application {
             }
 
             int quantidade = spnQuantidade.getValue();
-            int jaNoCarrinho = carrinho.getQuantidadeDoProduto(selecionado.getCodigo());
 
-            // valida antes de alterar: não deixa passar do estoque
-            if (jaNoCarrinho + quantidade > selecionado.getEstoque()) {
-                lblMensagem.setText(String.format("Estoque insuficiente: %d disponíveis, %d já no carrinho.",
-                        selecionado.getEstoque(), jaNoCarrinho));
-                return;
+            // a regra de estoque fica no Carrinho; aqui só tratamos o resultado
+            try {
+                carrinho.adicionar(selecionado, quantidade);
+                lblMensagem.setText(String.format("%dx %s adicionado ao carrinho.",
+                        quantidade, selecionado.getNome()));
+            } catch (EstoqueInsuficienteException ex) {
+                lblMensagem.setText(ex.getMessage());
             }
-
-            carrinho.adicionar(selecionado, quantidade);
-            lblMensagem.setText(String.format("%dx %s adicionado ao carrinho.",
-                    quantidade, selecionado.getNome()));
         });
 
         HBox acoes = new HBox(10, new Label("Qtd:"), spnQuantidade, btnAdicionar, lblMensagem);
@@ -286,6 +288,7 @@ public class LojaApp extends Application {
         area.setPadding(new Insets(15));
         return area;
     }
+
     // ---------- Centro: pedidos ----------
     private Node criarAreaPedidos() {
         Label subtitulo = new Label("Pedidos");
@@ -342,6 +345,144 @@ public class LojaApp extends Application {
         return area;
     }
 
+    // ---------- Centro: cadastro de produto ----------
+    private Node criarAreaCadastro() {
+        Label subtitulo = new Label("Cadastrar produto");
+        subtitulo.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+
+        ComboBox<String> cmbTipo = new ComboBox<>();
+        cmbTipo.getItems().addAll("Eletrônico", "Roupa", "Alimento");
+        cmbTipo.setPromptText("Tipo do produto");
+
+        TextField txtCodigo = new TextField();
+        txtCodigo.setPromptText("Código");
+        TextField txtNome = new TextField();
+        txtNome.setPromptText("Nome");
+        TextField txtPreco = new TextField();
+        txtPreco.setPromptText("Preço (ex: 49,90)");
+        TextField txtEstoque = new TextField();
+        txtEstoque.setPromptText("Estoque");
+
+        // campo extra: muda conforme o tipo e fica escondido até escolher um
+        Label lblExtra = new Label();
+        TextField txtExtra = new TextField();
+        VBox campoExtra = new VBox(5, lblExtra, txtExtra);
+        campoExtra.setVisible(false);
+        campoExtra.setManaged(false);
+
+        // quando o tipo muda, ajusta o campo extra
+        cmbTipo.valueProperty().addListener((obs, antigo, novo) -> {
+            if (novo == null) {
+                campoExtra.setVisible(false);
+                campoExtra.setManaged(false);
+                return;
+            }
+
+            switch (novo) {
+                case "Eletrônico":
+                    lblExtra.setText("Garantia (meses)");
+                    txtExtra.setPromptText("ex: 12");
+                    break;
+                case "Roupa":
+                    lblExtra.setText("Tamanho");
+                    txtExtra.setPromptText("P, M ou G");
+                    break;
+                default:
+                    lblExtra.setText("Data de validade");
+                    txtExtra.setPromptText("dd/mm/aaaa");
+                    break;
+            }
+
+            txtExtra.clear();
+            campoExtra.setVisible(true);
+            campoExtra.setManaged(true);
+        });
+
+        Button btnCadastrar = new Button("Cadastrar");
+        Label lblMensagem = new Label();
+
+        btnCadastrar.setOnAction(e -> {
+            // 1. tudo preenchido?
+            String tipo = cmbTipo.getValue();
+            if (tipo == null) {
+                lblMensagem.setText("Escolha o tipo do produto.");
+                return;
+            }
+            if (txtCodigo.getText().isBlank() || txtNome.getText().isBlank()
+                    || txtPreco.getText().isBlank() || txtEstoque.getText().isBlank()
+                    || txtExtra.getText().isBlank()) {
+                lblMensagem.setText("Preencha todos os campos.");
+                return;
+            }
+
+            // 2. converte os textos em números
+            int codigo;
+            double preco;
+            int estoque;
+            try {
+                codigo = Integer.parseInt(txtCodigo.getText().trim());
+                preco = Double.parseDouble(txtPreco.getText().trim().replace(",", "."));
+                estoque = Integer.parseInt(txtEstoque.getText().trim());
+            } catch (NumberFormatException ex) {
+                lblMensagem.setText("Código, preço e estoque precisam ser números.");
+                return;
+            }
+
+            if (preco <= 0 || estoque < 0) {
+                lblMensagem.setText("O preço deve ser maior que zero e o estoque não pode ser negativo.");
+                return;
+            }
+
+            // 3. cria o produto do tipo certo
+            String nome = txtNome.getText().trim();
+            String extra = txtExtra.getText().trim();
+            Produto produto;
+
+            switch (tipo) {
+                case "Eletrônico":
+                    int garantia;
+                    try {
+                        garantia = Integer.parseInt(extra);
+                    } catch (NumberFormatException ex) {
+                        lblMensagem.setText("A garantia precisa ser um número de meses.");
+                        return;
+                    }
+                    produto = new Eletronico(codigo, nome, preco, estoque, garantia);
+                    break;
+                case "Roupa":
+                    produto = new Roupa(codigo, nome, preco, estoque, extra.toUpperCase());
+                    break;
+                default:
+                    produto = new Alimento(codigo, nome, preco, estoque, extra);
+                    break;
+            }
+
+            // 4. o catálogo recusa código repetido
+            if (!catalogo.adicionar(produto)) {
+                lblMensagem.setText("Já existe um produto com o código " + codigo + ".");
+                return;
+            }
+
+            atualizarRodape();
+            lblMensagem.setText("Produto cadastrado: " + nome);
+
+            // limpa o formulário para o próximo cadastro
+            txtCodigo.clear();
+            txtNome.clear();
+            txtPreco.clear();
+            txtEstoque.clear();
+            txtExtra.clear();
+        });
+
+        VBox formulario = new VBox(10, cmbTipo, txtCodigo, txtNome, txtPreco, txtEstoque,
+                campoExtra, btnCadastrar, lblMensagem);
+        formulario.setMaxWidth(350);
+
+        VBox area = new VBox(10, subtitulo, formulario);
+        area.setPadding(new Insets(15));
+        return area;
+    }
+
     // transforma o texto escolhido na caixa em um objeto de pagamento;
     // devolve null se nada foi escolhido
     private Pagamento criarPagamento(String opcao) {
@@ -362,10 +503,15 @@ public class LojaApp extends Application {
 
     // ---------- Rodapé ----------
     private Node criarRodape() {
-        Label total = new Label("Produtos no catálogo: " + catalogo.listar().size());
+        lblTotalProdutos = new Label();
+        atualizarRodape();
 
-        HBox rodape = new HBox(total);
+        HBox rodape = new HBox(lblTotalProdutos);
         rodape.setPadding(new Insets(10));
         return rodape;
+    }
+
+    private void atualizarRodape() {
+        lblTotalProdutos.setText("Produtos no catálogo: " + catalogo.listar().size());
     }
 }
